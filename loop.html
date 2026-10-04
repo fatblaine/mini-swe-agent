@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Loop 对照图</title>
+<style>
+:root {
+  --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6a64; --line: #d9d6cc;
+  --c1: #7a5af5; --c2: #2f7de1; --c3: #d9822b; --c4: #d6336c; --c5: #1f9d6b;
+  --ok: #1f9d6b; --bad: #d6336c; --code-bg: #f1efe8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161614; --panel: #201f1c; --ink: #ecebe6; --muted: #a09e95; --line: #3a3934;
+    --c1: #a08cff; --c2: #6aa8ff; --c3: #f0a65a; --c4: #ff6b9a; --c5: #4fd19b;
+    --ok: #4fd19b; --bad: #ff6b9a; --code-bg: #191816;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161614; --panel: #201f1c; --ink: #ecebe6; --muted: #a09e95; --line: #3a3934;
+  --c1: #a08cff; --c2: #6aa8ff; --c3: #f0a65a; --c4: #ff6b9a; --c5: #4fd19b;
+  --ok: #4fd19b; --bad: #ff6b9a; --code-bg: #191816;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.6 -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 20px 16px 40px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-size: 22px; margin: 0; }
+.sub { color: var(--muted); font-size: 13px; }
+button.theme { background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 8px; padding: 4px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+.grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; margin-top: 14px; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+.card h2 { font-size: 13px; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+svg { width: 100%; height: auto; display: block; }
+svg text { fill: var(--ink); font-family: inherit; }
+svg .t-sub { fill: var(--muted); font-size: 12px; font-family: Consolas, "Cascadia Code", monospace; }
+svg .t-title { font-size: 16px; font-weight: 700; }
+svg .lbl { font-size: 12px; fill: var(--muted); }
+svg .edge { fill: none; stroke: var(--muted); stroke-width: 1.6; }
+svg .edge.bad { stroke: var(--bad); stroke-dasharray: 5 4; }
+svg .edge.ok { stroke: var(--ok); }
+svg .node rect, svg .node circle { fill: var(--panel); stroke-width: 2; transition: fill .15s; }
+svg .node { cursor: pointer; }
+svg .node:hover rect, svg .node:hover circle, svg .node.active rect, svg .node.active circle { fill: var(--code-bg); }
+svg .node.active rect, svg .node.active circle { stroke-width: 3.5; }
+.k1 { stroke: var(--c1); } .k2 { stroke: var(--c2); } .k3 { stroke: var(--c3); } .k4 { stroke: var(--c4); } .k5 { stroke: var(--c5); }
+.kx { stroke: var(--muted); } .kok { stroke: var(--ok); } .kbad { stroke: var(--bad); }
+.pill-ok { fill: var(--ok); } .pill-bad { fill: var(--bad); }
+svg .pill-t { fill: #fff; font-size: 12px; font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.legend i { display: inline-block; width: 22px; height: 0; border-top: 2px solid var(--muted); vertical-align: middle; margin-right: 4px; }
+.legend i.bad { border-top: 2px dashed var(--bad); } .legend i.ok { border-top-color: var(--ok); }
+
+#detail h3 { margin: 0 0 2px; font-size: 19px; }
+#detail .fn { font-family: Consolas, monospace; font-size: 13px; color: var(--muted); margin-bottom: 8px; word-break: break-all; }
+#detail h4 { font-size: 13px; margin: 12px 0 4px; color: var(--muted); }
+#detail ul { margin: 0; padding-left: 20px; }
+#detail li { margin: 2px 0; }
+.tag { display: inline-block; font-size: 12px; border-radius: 999px; padding: 1px 9px; color: #fff; margin-right: 6px; }
+code, pre { font-family: Consolas, "Cascadia Code", monospace; font-size: 13px; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); border-radius: 8px; padding: 10px 12px; margin: 6px 0 0; overflow-x: auto; white-space: pre; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+td { border-top: 1px solid var(--line); padding: 4px 6px; vertical-align: top; }
+td:first-child { white-space: nowrap; }
+
+.bottom { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+@media (max-width: 900px) { .bottom { grid-template-columns: 1fr; } }
+.code { counter-reset: ln; background: var(--code-bg); border-radius: 8px; padding: 8px 0; overflow-x: auto; }
+.code div { font-family: Consolas, monospace; font-size: 13px; white-space: pre; padding: 0 12px 0 0;
+  border-left: 3px solid transparent; cursor: pointer; }
+.code div::before { counter-increment: ln; content: counter(ln); display: inline-block; width: 2.4em;
+  text-align: right; margin-right: 12px; color: var(--muted); opacity: .6; }
+.code div.hl { background: color-mix(in srgb, var(--hl) 16%, transparent); border-left-color: var(--hl); }
+.check label { display: flex; gap: 8px; align-items: flex-start; padding: 5px 0; border-top: 1px solid var(--line); cursor: pointer; }
+.check label:first-of-type { border-top: 0; }
+.check input { margin-top: 5px; accent-color: var(--c5); }
+.check .done { color: var(--muted); text-decoration: line-through; }
+.check small { color: var(--muted); display: block; font-family: Consolas, monospace; }
+.prog { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin: 2px 0 8px; }
+.prog > div { height: 100%; background: var(--c5); width: 0; transition: width .2s; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Minimal SWE Agent · Loop 对照图</h1>
+      <div class="sub">点击图中任一部件（或右下伪代码的任一行）查看：对应函数、要做到什么、坏了长什么样、怎么测</div>
+    </div>
+    <button class="theme" id="themeBtn" type="button">切换明暗</button>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <h2>LOOP</h2>
+      <svg viewBox="0 0 820 650" role="img" aria-label="agent loop 图">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" style="fill: var(--muted)"/></marker>
+          <marker id="arBad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" style="fill: var(--bad)"/></marker>
+          <marker id="arOk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" style="fill: var(--ok)"/></marker>
+        </defs>
+
+        <!-- edges -->
+        <path class="edge" d="M170 48 L296 48" marker-end="url(#ar)"/>
+        <path class="edge" d="M520 58 C 650 58, 700 90, 700 146" marker-end="url(#ar)"/>
+        <text class="lbl" x="612" y="88">system + 消息</text>
+        <path class="edge" d="M700 226 L700 306" marker-end="url(#ar)"/>
+        <text class="lbl" x="710" y="262">text,</text>
+        <text class="lbl" x="710" y="278">stop_reason</text>
+        <path class="edge" d="M600 368 C 560 390, 560 450, 524 456" marker-end="url(#ar)"/>
+        <text class="lbl" x="482" y="404">普通工具</text>
+        <path class="edge" d="M700 386 L700 476" marker-end="url(#ar)"/>
+        <text class="lbl" x="710" y="436">name ==</text>
+        <text class="lbl" x="710" y="452">"finish"</text>
+        <path class="edge ok" d="M700 544 L700 578" marker-end="url(#arOk)"/>
+        <text class="lbl" x="710" y="566" style="fill: var(--ok)">✓ 通过</text>
+        <path class="edge bad" d="M600 528 C 470 620, 150 620, 116 324" marker-end="url(#arBad)"/>
+        <text class="lbl" x="250" y="612" style="fill: var(--bad)">✗ 验证失败 → 打回，继续循环</text>
+        <path class="edge bad" d="M600 352 C 480 372, 300 372, 214 312" marker-end="url(#arBad)"/>
+        <text class="lbl" x="300" y="384" style="fill: var(--bad)">ParseError → 错误回灌</text>
+        <path class="edge" d="M300 458 C 190 458, 130 410, 124 324" marker-end="url(#ar)"/>
+        <text class="lbl" x="150" y="476">观察（+ 打转提醒）</text>
+        <path class="edge" d="M120 240 C 120 130, 200 62, 296 62" marker-end="url(#ar)"/>
+        <text class="lbl" x="60" y="140">下一轮 step+1</text>
+
+        <!-- nodes -->
+        <g class="node" data-part="task" tabindex="0">
+          <rect class="kx" x="20" y="20" width="150" height="56" rx="10"/>
+          <text class="t-title" x="36" y="44">task</text>
+          <text class="t-sub" x="36" y="64">issue + workdir</text>
+        </g>
+        <g class="node" data-part="input" tabindex="0">
+          <rect class="k2" x="300" y="20" width="220" height="76" rx="12"/>
+          <text class="t-title" x="316" y="46" style="fill: var(--c2)">② input</text>
+          <text class="t-sub" x="316" y="68">build_system_prompt()</text>
+          <text class="t-sub" x="316" y="86">compact(messages)</text>
+        </g>
+        <g class="node" data-part="llm" tabindex="0">
+          <rect class="k3" x="600" y="150" width="200" height="76" rx="12"/>
+          <text class="t-title" x="616" y="176" style="fill: var(--c3)">③ LLM</text>
+          <text class="t-sub" x="616" y="198">llm(system, msgs)</text>
+          <text class="t-sub" x="616" y="216">重试 · stop="&lt;/tool&gt;"</text>
+        </g>
+        <g class="node" data-part="parser" tabindex="0">
+          <rect class="k4" x="600" y="310" width="200" height="76" rx="12"/>
+          <text class="t-title" x="616" y="336" style="fill: var(--c4)">④ parser</text>
+          <text class="t-sub" x="616" y="358">parse_action(text)</text>
+          <text class="t-sub" x="616" y="376">→ name, args</text>
+        </g>
+        <g class="node" data-part="verify" tabindex="0">
+          <rect class="kok" x="600" y="480" width="200" height="64" rx="12"/>
+          <text class="t-title" x="616" y="506" style="fill: var(--ok)">verify</text>
+          <text class="t-sub" x="616" y="528">不信模型，重跑测试</text>
+        </g>
+        <g class="node" data-part="exec" tabindex="0">
+          <rect class="k5" x="300" y="420" width="220" height="76" rx="12"/>
+          <text class="t-title" x="316" y="446" style="fill: var(--c5)">⑤ executor</text>
+          <text class="t-sub" x="316" y="468">execute(ws, name, args)</text>
+          <text class="t-sub" x="316" y="486">→ (obs, is_err)</text>
+        </g>
+        <g class="node" data-part="obs" tabindex="0">
+          <rect class="kx" x="20" y="244" width="200" height="76" rx="12"/>
+          <text class="t-title" x="36" y="270">observation</text>
+          <text class="t-sub" x="36" y="292">messages.append(</text>
+          <text class="t-sub" x="36" y="310"> &lt;observation&gt;…)</text>
+        </g>
+        <g class="node" data-part="loop" tabindex="0">
+          <circle class="k1" cx="410" cy="250" r="92"/>
+          <text class="t-title" x="410" y="212" text-anchor="middle" style="fill: var(--c1)">① loop</text>
+          <text class="t-sub" x="410" y="236" text-anchor="middle">for step in 1..MAX_STEPS</text>
+          <text class="t-sub" x="410" y="262" text-anchor="middle">出口：</text>
+          <text class="t-sub" x="410" y="280" text-anchor="middle" style="fill: var(--ok)">finished</text>
+          <text class="t-sub" x="410" y="298" text-anchor="middle" style="fill: var(--bad)">format_error_limit</text>
+          <text class="t-sub" x="410" y="316" text-anchor="middle" style="fill: var(--bad)">max_steps</text>
+        </g>
+        <g>
+          <rect class="pill-ok" x="610" y="582" width="180" height="32" rx="16"/>
+          <text class="pill-t" x="700" y="603" text-anchor="middle">return stats ✓ finished</text>
+        </g>
+      </svg>
+      <div class="legend">
+        <span><i></i>正常流</span><span><i class="bad"></i>错误回灌（不崩溃，变成观察还给模型）</span><span><i class="ok"></i>唯一的成功出口</span>
+      </div>
+    </div>
+
+    <div class="card" id="detail" aria-live="polite"></div>
+  </div>
+
+  <div class="bottom">
+    <div class="card">
+      <h2>run() 每一轮在做什么（点一行 ↔ 图中部件）</h2>
+      <div class="code" id="code"></div>
+    </div>
+    <div class="card check">
+      <h2>我的进度（my_agent.py）</h2>
+      <div class="prog"><div id="progBar"></div></div>
+      <div id="checklist"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const C = { loop: "--c1", input: "--c2", llm: "--c3", parser: "--c4", exec: "--c5", verify: "--ok", obs: "--muted", task: "--muted" };
+
+const PARTS = {
+  task: {
+    title: "task", tag: "入口", fn: "run(task, workdir, …) / build_messages(task, workdir)",
+    what: ["任务描述 + 仓库根目录，变成第一条 user 消息", "run_eval.py 每次都从干净副本开始，结束后<b>独立</b>重跑测试，并检查 tests/ 有没有被改"],
+    fail: ["agent 改测试让它“通过” → tests_tampered = True，评测会抓到"],
+    test: "python run_eval.py --agent mine"
+  },
+  loop: {
+    title: "① loop 与流程控制", tag: "Step 4 · 3h", fn: "run(task, workdir, llm, verify, max_steps, log) → stats",
+    what: [
+      "<code>MAX_STEPS = 30</code>：防止无限循环烧钱",
+      "<code>MAX_FORMAT_ERRORS = 3</code>：连续 3 次解析失败 → <code>format_error_limit</code>",
+      "原地打转：最近 3 个动作完全相同 → 观察里加提醒（含“连续 3 次”）",
+      "每轮累加 input/output tokens、format_errors、tool_errors",
+      "<code>llm</code> 是参数 → 用“剧本 LLM”离线测完所有分支再接真模型"
+    ],
+    fail: ["无限循环烧钱", "模型说“完成了”就信了，实际没修好"],
+    test: "python -m pytest selftest/test_loop_offline.py -q"
+  },
+  input: {
+    title: "② input", tag: "Step 2 · 1h", fn: "build_system_prompt() · build_messages() · compact()",
+    what: [
+      "prompt 四块：<b>角色</b> → <b>交互协议</b>（先思考，恰好一个工具调用，别自己写 observation）→ <b>工具说明</b>（从 TOOLS 自动生成）→ <b>规则</b>",
+      "规则：先复现 · 不改 tests/ · 先读全再写 · 改完重跑再 finish · 别重复",
+      "历史：user(task) → assistant → user(&lt;observation&gt;) → …",
+      "<code>compact()</code>：只留最近 6 条观察全文，更早的折叠成一行"
+    ],
+    fail: ["模型不知道有哪些工具 / 格式", "上下文爆掉", "旧观察把新信息淹没"],
+    test: "接真模型后看它是否遵守每条规则"
+  },
+  llm: {
+    title: "③ LLM", tag: "Step 4", fn: "make_llm() → call(system, messages) → (text, stop_reason, in_tok, out_tok)",
+    what: [
+      "<code>anthropic.Anthropic(max_retries=0)</code>，自己写指数退避（1s, 2s, 4s…）",
+      "可重试：RateLimit / APIConnection / InternalServer / APITimeout",
+      "<code>stop_sequences=[\"&lt;/tool&gt;\"]</code>：写完一个动作就截停",
+      "截停后返回文本里没有 &lt;/tool&gt; → loop 里要补回去"
+    ],
+    fail: ["一次 429 / 500 让整个任务崩掉"],
+    test: "必做实验：USE_STOP_SEQUENCE = False 跑 task3，记录现象"
+  },
+  parser: {
+    title: "④ output parser", tag: "Step 3 · 3h · 最重要", fn: "parse_action(text) → (thought, name, args, warning) | raise ParseError",
+    table: [
+      ["包在 ```xml 里", "全文找 &lt;tool，围栏自然忽略"],
+      ["content 里有 ```python", "只对 content 剥围栏"],
+      ["两个 &lt;tool&gt;", "只执行第一个 + warning"],
+      ["缺 &lt;/tool&gt;", "ParseError “结构不完整”"],
+      ["没有工具调用", "ParseError “没有找到”"],
+      ["name='bash'", "正则兼容单引号"],
+      ["命令里有 &gt; &lt;", "<code>&lt;(\\w+)&gt;(.*?)&lt;/\\1&gt;</code>"],
+      ["content 缩进", "<b>不能 strip</b>，只去标签旁一个换行"]
+    ],
+    what: ["失败 → 错误写成 observation 回灌，模型下一轮通常能自己改正"],
+    fail: ["一个多余的 ``` 或少一个闭合标签就卡死"],
+    test: "python -m pytest selftest/test_parser.py -q"
+  },
+  exec: {
+    title: "⑤ executor", tag: "Step 1 · 2h · 先写这个", fn: "Workspace · truncate · tool_bash/read_file/write_file/search · TOOLS · execute",
+    table: [
+      ["bash", "exit_code + stdout + stderr；超时"],
+      ["read_file", "带行号；最多 200 行；告诉还剩几行"],
+      ["write_file", ".py 写完立刻 compile() 回灌语法检查"],
+      ["search", "空 pattern 列文件；否则 文件:行号: 内容；≤ 50 条"]
+    ],
+    what: [
+      "<code>execute</code> 吞掉<b>所有</b>异常：工具出错是<b>观察</b>，不是<b>崩溃</b>",
+      "<code>Workspace.path()</code> 锁在工作目录内（越界 → “越界”）",
+      "<code>truncate()</code> 保头保尾（pytest 报错在末尾）"
+    ],
+    fail: ["一个异常把 loop 打崩", "cat 大文件把上下文塞满", "命令卡住不返回"],
+    test: "python -m pytest selftest/test_loop_offline.py -k \"escape or glob\" -q"
+  },
+  verify: {
+    title: "verify（终止验证）", tag: "Step 4", fn: "name == 'finish' → execute(ws, 'bash', {'cmd': verify})",
+    what: [
+      "输出以 <code>[exit_code] 0</code> 开头才算通过 → <code>status = 'finished'</code>",
+      "失败 → 观察里写“你调用了 finish，但<b>验证命令</b> … 失败”，继续循环",
+      "没传 verify 时直接结束"
+    ],
+    fail: ["模型谎报完成（非常常见）"],
+    test: "test_premature_finish_is_rejected"
+  },
+  obs: {
+    title: "observation", tag: "回到 ②", fn: "messages.append({'role': 'user', 'content': '<observation>\\n…\\n</observation>'})",
+    what: [
+      "三种来源：工具结果 · ParseError 信息 · 验证失败信息",
+      "有 warning（一次两个动作）→ 放在观察最前面",
+      "打转检测的提醒追加在观察末尾",
+      "assistant 的原文也要 append（stop 截停时补上 &lt;/tool&gt;）"
+    ],
+    fail: ["观察信息不够 → 模型看不到新东西 → 原地打转"],
+    test: "test_loop_detection_and_max_steps"
+  }
+};
+
+const CODE = [
+  ["loop", "for step in range(1, max_steps + 1):"],
+  ["input", "    msgs = compact(messages)"],
+  ["llm", "    text, stop, tin, tout = llm(system, msgs)"],
+  ["llm", "    if stop == \"stop_sequence\": text += \"</tool>\""],
+  ["obs", "    messages.append(assistant: text)"],
+  ["parser", "    try:    thought, name, args, warn = parse_action(text)"],
+  ["parser", "    except ParseError as e:"],
+  ["loop", "        streak += 1; if streak >= 3: return format_error_limit"],
+  ["obs", "        messages.append(<observation>[格式错误] e); continue"],
+  ["verify", "    if name == \"finish\":"],
+  ["verify", "        if verify and 验证失败: 回灌“验证命令…失败”; continue"],
+  ["verify", "        return finished"],
+  ["exec", "    obs, is_err = execute(ws, name, args)"],
+  ["loop", "    if 最近 3 个动作相同: obs += 提醒"],
+  ["obs", "    messages.append(<observation>obs</observation>)"],
+  ["loop", "return max_steps"]
+];
+
+const STEPS = [
+  ["s0", "环境：venv + pytest，参考答案 selftest 15 passed", "AGENT_IMPL=agent_v0 pytest selftest"],
+  ["s1", "纸上画 loop + 写出每个部件的失效表现", "看这张图"],
+  ["s2", "⑤ executor：Workspace / truncate / 四个工具 / execute", "-k \"escape or glob\""],
+  ["s3", "④ parser：parse_action 9 个刁难用例", "selftest/test_parser.py"],
+  ["s4", "② input：system prompt + build_messages", ""],
+  ["s5", "① loop + ③ LLM：run / compact / make_llm", "selftest/test_loop_offline.py"],
+  ["s6", "全部 15 个离线测试通过", "pytest selftest -q"],
+  ["s7", "接真模型：run_eval --agent mine → 3/3", "pip install anthropic"],
+  ["s8", "实验：关掉 stop sequence 跑 task3", "USE_STOP_SEQUENCE = False"],
+  ["s9", "v1：native tool calling，对比 v0 填表", "run_eval --agent v1"]
+];
+
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+};
+
+function show(part) {
+  const p = PARTS[part];
+  if (!p) return;
+  const col = `var(${C[part]})`;
+  let h = `<h2>部件详情</h2><h3 style="color:${col}">${p.title}</h3>`;
+  h += `<div><span class="tag" style="background:${col}">${p.tag}</span></div>`;
+  h += `<div class="fn">${p.fn.replace(/</g, "&lt;")}</div>`;
+  if (p.table) h += `<h4>必须做到</h4><table>${p.table.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</table>`;
+  if (p.what) h += `<h4>${p.table ? "另外" : "必须做到"}</h4><ul>${p.what.map(x => `<li>${x}</li>`).join("")}</ul>`;
+  h += `<h4>坏掉时长什么样</h4><ul>${p.fail.map(x => `<li>${x}</li>`).join("")}</ul>`;
+  h += `<h4>怎么测</h4><pre>${p.test}</pre>`;
+  document.getElementById("detail").innerHTML = h;
+  document.querySelectorAll(".node").forEach(n => n.classList.toggle("active", n.dataset.part === part));
+  document.querySelectorAll("#code div").forEach(d => {
+    d.classList.toggle("hl", d.dataset.part === part);
+    d.style.setProperty("--hl", col);
+  });
+  store.set("loop.part", part);
+}
+
+const code = document.getElementById("code");
+CODE.forEach(([part, line]) => {
+  const d = document.createElement("div");
+  d.dataset.part = part; d.textContent = line;
+  d.onclick = () => show(part);
+  code.appendChild(d);
+});
+
+document.querySelectorAll(".node").forEach(n => {
+  n.addEventListener("click", () => show(n.dataset.part));
+  n.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); show(n.dataset.part); } });
+});
+
+const list = document.getElementById("checklist");
+function renderProgress() {
+  const boxes = list.querySelectorAll("input");
+  const done = [...boxes].filter(b => b.checked).length;
+  document.getElementById("progBar").style.width = (done / boxes.length * 100) + "%";
+}
+STEPS.forEach(([id, text, hint]) => {
+  const l = document.createElement("label");
+  const cb = document.createElement("input");
+  cb.type = "checkbox"; cb.checked = store.get("loop." + id) === "1";
+  const span = document.createElement("span");
+  span.innerHTML = text + (hint ? `<small>${hint}</small>` : "");
+  span.classList.toggle("done", cb.checked);
+  cb.onchange = () => { store.set("loop." + id, cb.checked ? "1" : "0"); span.classList.toggle("done", cb.checked); renderProgress(); };
+  l.append(cb, span); list.appendChild(l);
+});
+renderProgress();
+
+const root = document.documentElement;
+const savedTheme = store.get("loop.theme");
+if (savedTheme) root.dataset.theme = savedTheme;
+document.getElementById("themeBtn").onclick = () => {
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+  store.set("loop.theme", root.dataset.theme);
+};
+
+show(store.get("loop.part") || "exec");
+</script>
+</body>

@@ -1,0 +1,4 @@
+{
+  "issue": "stats.median 对偶数长度的列表返回了错误结果，测试失败了。请修复源码，不要改测试。",
+  "verify": "python -m pytest -q"
+}

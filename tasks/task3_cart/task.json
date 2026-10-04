@@ -1,0 +1,4 @@
+{
+  "issue": "购物车打折后的总价不对，test_cart 失败。请找到根因并修复。",
+  "verify": "python -m pytest -q"
+}

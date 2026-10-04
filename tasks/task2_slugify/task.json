@@ -1,0 +1,4 @@
+{
+  "issue": "slugify 生成的 URL slug 不符合预期（多余的连字符、首尾没清理干净）。测试失败了，请修复。",
+  "verify": "python -m pytest -q"
+}
