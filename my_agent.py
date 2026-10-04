@@ -22,6 +22,7 @@ import os
 import re
 import subprocess
 import sys
+import textwrap
 import time
 from fnmatch import fnmatch
 from pathlib import Path
@@ -146,7 +147,8 @@ def tool_search(ws, pattern="", glob="**/*"):
         rel_parts = f.relative_to(ws.root).parts
         if not f.is_file() or SKIP_DIRS & set(rel_parts):   # 跳过目录本身和 .git 等无关目录
             continue
-        rel = f.relative_to(ws.root).as_posix()             # 统一用 / 分隔，例如 textutil/slug.py
+        # 统一用 / 分隔，例如 textutil/slug.py
+        rel = f.relative_to(ws.root).as_posix()
         if not (fnmatch(rel, glob) or fnmatch(rel, short_glob) or fnmatch(f.name, short_glob)):
             continue
         if regex is None:                                   # 没给 pattern：只列文件
@@ -213,20 +215,71 @@ def build_system_prompt():
     """四块按顺序拼：角色 → 交互协议（先思考，再恰好一个工具调用，不要自己写 observation）
     → 工具说明（从 TOOLS 自动生成）→ 工作规则（先复现、不改测试、先读全再写、改完重跑再 finish、别重复）。"""
     # TODO
-    raise NotImplementedError("Step 2: build_system_prompt")
+    # ① 角色：定义 agent 的身份和职责
+    role = "你是一个软件工程 agent，你的名字叫Chenghao，在一个真实的代码仓库里定位并修复 bug。你只能通过下面的工具和仓库交互。"
+    # ② 交互协议：格式必须和 parse_action 能解析的完全一致
+    # dedent 去掉代码缩进带进字符串的公共前导空格，否则模型会学着在 <tool> 前加空格
+    protocol = textwrap.dedent("""
+        ## 交互协议
+        每一轮你必须：
+        1. 先用一两句话写出你的思考：你叫什么名字，现在知道了什么、下一步要做什么、为什么。
+        2. 然后输出【恰好一个】工具调用，格式如下，每个参数都用 <参数名>...</参数名> 包起来：
+
+        <tool name="工具名">
+        <参数名>参数值</参数名>
+        </tool>
+
+        3. 写完 </tool> 立刻停下。工具的执行结果会以 <observation>...</observation> 的形式发给你。
+           绝对不要自己编写 <observation>，也不要一次输出多个工具调用。
+
+        示例：
+        我先运行测试，看看具体哪里失败。
+        <tool name="bash">
+        <cmd>python -m pytest -q</cmd>
+        </tool>""").strip()
+
+    # ③ 工具说明：从 TOOLS 自动生成，改工具时不会忘记改 prompt
+    tool_lines = [f"- {name}: {desc}" for name, (_, desc) in TOOLS.items()]
+    tools = "## 可用工具\n" + "\n".join(tool_lines)
+
+    rules = textwrap.dedent("""
+        ## 工作规则
+        1. 先复现：动手修改前，先运行测试，看清楚报错。
+        2. 不许修改 tests/ 目录下的任何文件。目标是修好源代码，不是让测试闭嘴。
+        3. 测试报错的地方不一定是 bug 所在的地方，用 search 和 read_file 顺着调用链找到根因。
+        4. write_file 会覆盖整个文件：写之前必须先 read_file 读完整，写回时保留所有无关代码。
+        5. 改完后重新运行测试，确认全部通过后才能调用 finish。没通过就 finish 会被打回。
+        6. 不要重复同一个动作。如果上一步没有带来新信息，换一个思路。""").strip()
+
+    return "\n\n".join([role, protocol, tools, rules])
 
 
 def build_messages(task, workdir):
     """初始 messages：一条 user 消息，包含任务描述和工作目录。"""
-    # TODO
-    raise NotImplementedError("Step 2: build_messages")
+    # system prompt 不放这里：Anthropic API 的 messages 只接受 user/assistant，system 单独传
+    user_message = f"<task>{task}</task>\n<workdir>{workdir}</workdir>"
+    return [{"role": "user", "content": user_message}]
 
 
 def compact(messages, keep=KEEP_RECENT_OBS):
     """上下文压缩：以 "<observation>" 开头的 user 消息，只保留最近 keep 条全文，更早的折叠成一行。
     返回新列表，不要修改原 messages。"""
-    # TODO
-    raise NotImplementedError("Step 4: compact")
+    def is_obs(m):
+        return m["role"] == "user" and m["content"].startswith("<observation>")
+
+    total = sum(1 for m in messages if is_obs(m))
+    fold_before = total - keep          # 序号 <= fold_before 的观察要折叠（保留的是最近 keep 条）
+    compacted = []
+    obs_count = 0
+    for msg in messages:
+        if is_obs(msg):
+            obs_count += 1
+            if obs_count <= fold_before:
+                # 只替换内容、不删消息：每个动作都还有对应的观察，user/assistant 保持交替
+                msg = {"role": "user",
+                       "content": f"<observation>[较早的观察已折叠，原长 {len(msg['content'])} 字符]</observation>"}
+        compacted.append(msg)
+    return compacted
 
 
 # ═════════════════════════ ③ LLM（Step 4）═════════════════════════
